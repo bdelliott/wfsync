@@ -94,6 +94,20 @@ func home(state *authState, authCallbackUrl *string) func(
 }
 
 
+// provide sync status for the requested API
+func syncStatus(w http.ResponseWriter, r *http.Request) {
+    r.ParseForm()
+    apiName:= r.Form["name"][0]
+
+    log.Printf("Getting status for %s API", apiName)
+
+    // TODO check existence of an API cookie
+    // TODO make a trivial API call to verify connectivity still works.
+    //  --> if not, purge cookie, give user a button to sync the API.
+    //  --> if yes, return a good status value
+}
+
+
 func authUser(state *authState, authCallbackUrl *string,
               w http.ResponseWriter, r *http.Request) {
 
@@ -152,17 +166,24 @@ func main() {
 
     c.Debug(false)
 
+    /*
     state := authState{
         consumer: c,
         rtokm: make(map[string]*oauth.RequestToken),
         atokm: make(map[string]*oauth.AccessToken),
     }
+    */
 
     // map url paths to handler functions:
-    http.HandleFunc(authCallbackPath, authCallback(&state, &authCallbackUrl))
-    http.HandleFunc("/", home(&state, &authCallbackUrl))
+    http.Handle("/", http.FileServer(http.Dir("./assets")))
+    http.HandleFunc("/sync", syncStatus)
+
+    //http.HandleFunc(authCallbackPath, authCallback(&state, &authCallbackUrl))
+    //#http.HandleFunc("/", home(&state, &authCallbackUrl))
+
+
 
     // start the http service:
-    log.Fatal(http.ListenAndServe(":8081", nil))
+    log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
