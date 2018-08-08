@@ -9,8 +9,6 @@ class SyncItem extends React.Component {
 
     componentDidMount() {
         // fetch state of component
-        var url = window.location.href + "sync?name=" + this.props.name;
-        fetch(url).then(this.updateSyncStatus);
     }
 
     render() {
@@ -21,9 +19,21 @@ class SyncItem extends React.Component {
 
 }
 
-class SyncList extends React.Component {
+class Synchronizer extends React.Component {
+
+    constructor(props) {
+        super(props);
+        this.state = {
+            status: "initializing"
+        }
+    }
+
+    componentDidMount() {
+        this.syncStatus();
+    }
 
     render() {
+
         return (
             <ul>
                 <SyncItem name="Nokia"/>
@@ -32,10 +42,21 @@ class SyncList extends React.Component {
         )
     }
 
-   
+    updateSyncStatus() {
+        // update status values
+        alert('update');
+    }
+
+    syncStatus() {
+        // call server to update sync progress and check statuses
+        var url = window.location.href + "syncStatus";
+        fetch(url).then(this.updateSyncStatus);
+    }
+
+  
 }
 
 ReactDOM.render(
-      <SyncList/>,
+      <Synchronizer/>,
       document.getElementById('root')
 );
