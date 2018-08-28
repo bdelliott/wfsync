@@ -1,20 +1,36 @@
-package main
-
-import (
-    "github.com/mrjones/oauth"
-)
+package wfsync
 
 const (
-    FATSECRET = "fatsecret"
-    NOKIA = "nokia"
-    USER_COOKIE = "user-id-cookie"
-    USERID = "userid"
+	FATSECRET   = "fatsecret"
+	NOKIA       = "nokia"
+	USER_COOKIE = "user-id-cookie"
+	USERID      = "userid"
 )
 
+
 type authState struct {
-    consumer *oauth.Consumer
-    nokiaRequestTokenMap map[string]*oauth.RequestToken // Nokia req token string => RequestToken
-    nokiaAccessTokenMap map[string]*oauth.AccessToken // Nokia uid => AccessToken
+	nokia *nokiaState
+	//nokiaRequestTokenMap map[string]*oauth.RequestToken // Nokia req token string => RequestToken
+	//nokiaAccessTokenMap map[string]*oauth.AccessToken // Nokia uid => AccessToken
+}
+
+// initialize the main auth state data struct
+func StateInit(nokiaApiKey string, nokiaApiSecret string, nokiaAuthCallbackUrl string) *authState {
+
+	nokia := NokiaStateInit(
+		nokiaApiKey,
+		nokiaApiSecret,
+		nokiaAuthCallbackUrl,
+	)
+
+	   state := authState{
+	   		nokia: nokia,
+	       //nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
+	       //nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),
+	   }
+
+
+	return &state
 }
 
 
@@ -61,8 +77,6 @@ func authCallback(state *authState, authCallbackUrl *string) func(
     }
 }*/
 
-
-
 /*
 func authUser(state *authState, authCallbackUrl *string,
               w http.ResponseWriter, r *http.Request) {
@@ -87,7 +101,6 @@ func authUser(state *authState, authCallbackUrl *string,
     http.Redirect(w, r, authorizeUrl, http.StatusFound)
 }
 */
-
 
 /*
 // start a little webapp for syncing Withings (Nokia) body scale measurements to

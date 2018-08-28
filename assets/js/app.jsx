@@ -1,56 +1,76 @@
-class SyncItem extends React.Component {
-
-    constructor(props) {
-        super(props);
-        this.state = {
-            syncStatus: "Unknown"
-        };
-    }
-
-    componentDidMount() {
-        // fetch state of component
-    }
-
-    render() {
-        return (
-            <li>sync state of {this.props.name}...TBD</li>
-        )
-    }
-
-}
-
 class Synchronizer extends React.Component {
 
     constructor(props) {
         super(props);
+
         this.state = {
-            status: "initializing"
-        }
+            nokia: "Loading",
+            fatsecret: "Loading"
+        };
     }
 
     componentDidMount() {
         this.syncStatus();
     }
 
+    syncNokia() {
+        var url = window.location.href + "syncNokia";
+        fetch(url, {
+            "cache": "no-cache",
+        }).then(
+            response => response.json()
+        ).then(
+            json => window.location = json.url
+        );
+    }
+
     render() {
 
         return (
-            <ul>
-                <SyncItem name="Nokia"/>
-                <SyncItem name="FatSecret"/>
-            </ul>
+            <table border="1" width="50%" cellPadding="5">
+                <tbody>
+                    <tr>
+                        <td>Sync state of Nokia</td>
+                        <td>{this.state.nokia}</td>
+                        <td><input type="button" value="Link"
+                                   onClick={this.syncNokia}/></td>
+                    </tr>
+                    <tr>
+                        <td>Sync state of FatSecret</td>
+                        <td>{this.state.fatsecret}</td>
+                        <td><input type="button" value="Link"/></td>
+                    </tr>
+                </tbody>
+            </table>
         )
-    }
-
-    updateSyncStatus() {
-        // update status values
-        alert('update');
     }
 
     syncStatus() {
         // call server to update sync progress and check statuses
         var url = window.location.href + "syncStatus";
-        fetch(url).then(this.updateSyncStatus);
+        fetch(url, {
+            "cache": "no-cache"
+        }).then(
+            response => response.json()
+        ).then(
+            json => this.updateStatus(json)
+        );
+    }
+
+    updateStatus(status) {
+
+        function value(status) {
+            if (status) {
+                return "Linked";
+            } else {
+                return "Not Linked";
+            }
+        }
+
+        this.setState({
+            nokia: value(status.nokia),
+            fatsecret: value(status.fatsecret)
+        });
     }
 
   
