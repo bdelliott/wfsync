@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Withings => FatSecret Sync Tool</title>
+
+    <link rel="stylesheet" type="text/css" href="../css/app.css">
+    <script type="text/javascript" src="../js/util.js"></script>
+    <script type="text/javascript" src="../js/app.js"></script>
+  </head>
+
+  <body>
+
+    <h2>Withings to FatSecret Sync tool</h2>
+
+    <p>This is a minimalist tool to sync Withings (Nokia) body scale
+    measurements from Nokia's API to FatSecret's API.</p>
+
+    <p>Please login and link both APIs in order to setup background synchronization of scale measurements.</p>
+
+    <table border="1" width="50%" cellPadding="5">
+        <tbody>
+          <tr>
+            <td>User</td>
+            <td colspan="2">{{.UserName}}</td>
+          </tr>
+        <tr>
+            <td>Sync state of Nokia</td>
+            <td>{{.NokiaState}}</td>
+            <td><a href="/linkNokia">Link</a></td>
+        </tr>
+        <tr>
+            <td>Sync state of FatSecret</td>
+            <td>{{.FatSecretState}}</td>
+            <td><a href="/linkFatSecret">Link</a></td>
+        </tr>
+        </tbody>
+    </table>
+
+  </body>
+</html>

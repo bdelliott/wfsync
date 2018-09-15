@@ -1,21 +1,28 @@
 package wfsync
 
+import (
+	"os"
+)
+
 const (
 	FATSECRET   = "fatsecret"
 	NOKIA       = "nokia"
-	USER_COOKIE = "user-id-cookie"
-	USERID      = "userid"
 )
 
 
-type authState struct {
+type state struct {
+	store *store
+
 	nokia *nokiaState
 	//nokiaRequestTokenMap map[string]*oauth.RequestToken // Nokia req token string => RequestToken
 	//nokiaAccessTokenMap map[string]*oauth.AccessToken // Nokia uid => AccessToken
 }
 
 // initialize the main auth state data struct
-func StateInit(nokiaApiKey string, nokiaApiSecret string, nokiaAuthCallbackUrl string) *authState {
+func StateInit(store *store, nokiaAuthCallbackUrl string) *state {
+
+	nokiaApiKey := os.Getenv("NOKIA_API_KEY")
+	nokiaApiSecret := os.Getenv("NOKIA_API_SECRET")
 
 	nokia := NokiaStateInit(
 		nokiaApiKey,
@@ -23,12 +30,12 @@ func StateInit(nokiaApiKey string, nokiaApiSecret string, nokiaAuthCallbackUrl s
 		nokiaAuthCallbackUrl,
 	)
 
-	   state := authState{
-	   		nokia: nokia,
-	       //nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
-	       //nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),
-	   }
-
+	state := state{
+		store: store,
+		nokia: nokia,
+	   //nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
+	   //nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),
+	}
 
 	return &state
 }
@@ -36,7 +43,7 @@ func StateInit(nokiaApiKey string, nokiaApiSecret string, nokiaAuthCallbackUrl s
 
 // User has authorized, now do something useful
 /*
-func authCallback(state *authState, authCallbackUrl *string) func(
+func authCallback(state *state, authCallbackUrl *string) func(
     w http.ResponseWriter, r *http.Request) {
 
     return func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +85,7 @@ func authCallback(state *authState, authCallbackUrl *string) func(
 }*/
 
 /*
-func authUser(state *authState, authCallbackUrl *string,
+func authUser(state *state, authCallbackUrl *string,
               w http.ResponseWriter, r *http.Request) {
 
     // Step 1 -
@@ -137,7 +144,7 @@ func main() {
 
     c.Debug(false)
 
-    state := authState{
+    state := state{
         consumer: c,
         nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
         nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),

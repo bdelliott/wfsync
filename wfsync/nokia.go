@@ -41,7 +41,6 @@ func NokiaExchangeToken(state *nokiaState, req *http.Request) (accessToken strin
 		return "", err
 	}
 
-
 	log.Print(token)
 	return "", nil
 }

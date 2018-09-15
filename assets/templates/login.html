@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Withings => FatSecret Sync Tool - Login</title>
+
+    <link rel="stylesheet" type="text/css" href="../css/app.css">
+    <script type="text/javascript" src="../js/util.js"></script>
+    <script type="text/javascript" src="../js/app.js"></script>
+
+  </head>
+
+  <body>
+
+  <div id="amazon-root"></div>
+  <script type="text/javascript">
+
+    window.onAmazonLoginReady = function() {
+      amazon.Login.setClientId('amzn1.application-oa2-client.321db102b1b84963b0843bfa0b1525ea');
+    };
+    (function(d) {
+      var a = d.createElement('script'); a.type = 'text/javascript';
+      a.async = true; a.id = 'amazon-login-sdk';
+      a.src = 'https://assets.loginwithamazon.com/sdk/na/login1.js';
+      d.getElementById('amazon-root').appendChild(a);
+    })(document);
+
+  </script>
+
+
+
+  <div id="amazon-root"></div>
+
+  <script type="text/javascript">
+
+    window.onAmazonLoginReady = function() {
+      amazon.Login.setClientId('amzn1.application-oa2-client.321db102b1b84963b0843bfa0b1525ea');
+    };
+    (function(d) {
+      var a = d.createElement('script'); a.type = 'text/javascript';
+      a.async = true; a.id = 'amazon-login-sdk';
+      a.src = 'https://assets.loginwithamazon.com/sdk/na/login1.js';
+      d.getElementById('amazon-root').appendChild(a);
+    })(document);
+
+  </script>
+  <h2>Withings to FatSecret Sync tool</h2>
+
+  <p>This is a minimalist tool to sync Withings (Nokia) body scale
+    measurements from Nokia's API to FatSecret's API.</p>
+
+  <p>Please login with Amazon to get started:</p>
+
+  <div id="login">
+    Login: <a href id="LoginWithAmazon">
+    <img border="0" alt="Login with Amazon"
+         src="https://images-na.ssl-images-amazon.com/images/G/01/lwa/btnLWA_gold_156x32.png"
+         width="156" height="32" />
+  </a>
+
+    <script type="text/javascript">
+      document.getElementById('LoginWithAmazon').onclick = function() {
+        options = { scope : 'profile' };
+        amazon.Login.authorize(options, function(response) {
+          if ( response.error ) {
+            alert('oauth error ' + response.error);
+            return;
+          }
+          amazon.Login.retrieveProfile(response.access_token, amazonSetUserIdentity);
+        });
+        return false;
+      };
+
+      /**
+       * Get just enough user information to uniquely save API settings.
+       * @param response
+       */
+      function amazonSetUserIdentity(response) {
+        console.log(response);
+
+        const userName = response.profile.Name;
+        const userId = response.profile.CustomerId;
+
+        console.log("Username: " + userName);
+        console.log("Userid: " + userId);
+
+        var form = document.getElementById("loginForm");
+        form["userid"].value = userId;
+        form["username"].value = userName;
+        form.submit()
+      }
+
+
+    </script>
+  </div>
+
+  <form id="loginForm" method="post">
+    <input type="hidden" name="userid"/>
+    <input type="hidden" name="username"/>
+  </form>
+
+</body>
+</html>

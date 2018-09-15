@@ -11,7 +11,7 @@ import (
 // to a FatSecret profile
 func main() {
 
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime | log.Lshortfile)
 
 	var nokiaAuthCallbackUrl string
 
@@ -23,10 +23,13 @@ func main() {
 		log.Fatal("Missing required flag -nokia-auth-callback-url")
 	}
 
-	nokiaApiKey := os.Getenv("NOKIA_API_KEY")
-	nokiaApiSecret := os.Getenv("NOKIA_API_SECRET")
+	store, err := wfsync.StoreGet()
+	if err != nil {
+		log.Fatal(err);
+		os.Exit(1);
+	}
 
-	//store = sessions.NewFilesystemStore([]byte("something-very-secret"))
-	authState := wfsync.StateInit(nokiaApiKey, nokiaApiSecret, nokiaAuthCallbackUrl)
-	wfsync.WebServe(authState)
+	state := wfsync.StateInit(store, nokiaAuthCallbackUrl);
+
+	wfsync.WebServe(state)
 }
