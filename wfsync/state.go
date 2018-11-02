@@ -1,25 +1,19 @@
 package wfsync
 
 import (
+	"database/sql"
 	"os"
 )
 
-const (
-	FATSECRET   = "fatsecret"
-	NOKIA       = "nokia"
-)
-
-
-type state struct {
-	store *store
-
+type State struct {
+	db *sql.DB
 	nokia *nokiaState
 	//nokiaRequestTokenMap map[string]*oauth.RequestToken // Nokia req token string => RequestToken
 	//nokiaAccessTokenMap map[string]*oauth.AccessToken // Nokia uid => AccessToken
 }
 
-// initialize the main auth state data struct
-func StateInit(store *store, nokiaAuthCallbackUrl string) *state {
+// initialize the main auth State data struct
+func StateInit(db *sql.DB, nokiaAuthCallbackUrl string) *State {
 
 	nokiaApiKey := os.Getenv("NOKIA_API_KEY")
 	nokiaApiSecret := os.Getenv("NOKIA_API_SECRET")
@@ -30,8 +24,8 @@ func StateInit(store *store, nokiaAuthCallbackUrl string) *state {
 		nokiaAuthCallbackUrl,
 	)
 
-	state := state{
-		store: store,
+	state := State{
+		db: db,
 		nokia: nokia,
 	   //nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
 	   //nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),
@@ -43,7 +37,7 @@ func StateInit(store *store, nokiaAuthCallbackUrl string) *state {
 
 // User has authorized, now do something useful
 /*
-func authCallback(state *state, authCallbackUrl *string) func(
+func authCallback(State *State, authCallbackUrl *string) func(
     w http.ResponseWriter, r *http.Request) {
 
     return func(w http.ResponseWriter, r *http.Request) {
@@ -52,13 +46,13 @@ func authCallback(state *state, authCallbackUrl *string) func(
         qs := r.URL.Query()
 
         token := qs.Get(oauth.TOKEN_PARAM)
-        rtoken := state.rtokm[token]
+        rtoken := State.rtokm[token]
 
         verifier:= qs.Get(oauth.VERIFIER_PARAM)
 
         // user authorized the app, we can get an access token and begin
         // interacting with the API
-        consumer := state.consumer
+        consumer := State.consumer
         accessToken, err := consumer.AuthorizeToken(rtoken, verifier)
 
         // save mapping of user => access token
@@ -68,7 +62,7 @@ func authCallback(state *state, authCallbackUrl *string) func(
 
         // access tokens are permanent, so shouldn't need to refresh them
         uid := qs.Get(NOKIA_USERID)
-        state.atokm[uid] = accessToken
+        State.atokm[uid] = accessToken
 
         // save a cookie so we don't repeat the auth process a 2nd time
         c := http.Cookie{
@@ -85,18 +79,18 @@ func authCallback(state *state, authCallbackUrl *string) func(
 }*/
 
 /*
-func authUser(state *state, authCallbackUrl *string,
+func authUser(State *State, authCallbackUrl *string,
               w http.ResponseWriter, r *http.Request) {
 
     // Step 1 -
     //   Generate an oAuth token to be used for the End-User authorization call.
     //
-    consumer := state.consumer
+    consumer := State.consumer
     requestToken, authorizeUrl, err := consumer.GetRequestTokenAndUrl(
         *authCallbackUrl)
 
     // save the request token string & associated secret for post callback
-    state.rtokm[requestToken.Token] = requestToken
+    State.rtokm[requestToken.Token] = requestToken
 
     if err != nil {
         log.Fatal(err)
@@ -144,7 +138,7 @@ func main() {
 
     c.Debug(false)
 
-    state := state{
+    State := State{
         consumer: c,
         nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
         nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),
@@ -152,10 +146,10 @@ func main() {
 
     // map url paths to handler functions:
     http.Handle("/", http.FileServer(http.Dir("./assets")))
-    http.HandleFunc("/syncStatus", syncStatus(&state))
+    http.HandleFunc("/syncStatus", syncStatus(&State))
 
-    //http.HandleFunc(authCallbackPath, authCallback(&state, &authCallbackUrl))
-    //#http.HandleFunc("/", home(&state, &authCallbackUrl))
+    //http.HandleFunc(authCallbackPath, authCallback(&State, &authCallbackUrl))
+    //#http.HandleFunc("/", home(&State, &authCallbackUrl))
 
 
 

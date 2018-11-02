@@ -10,7 +10,7 @@ import (
 
 // start a little webapp for syncing Withings (Nokia) body scale measurements to
 // a FatSecret profile
-func WebServe(state *state) {
+func WebServe(state *State) {
 
 	// map url paths to handler functions:
 
@@ -23,12 +23,13 @@ func WebServe(state *state) {
 
 	// login page
 	http.HandleFunc("/login/", loginHandler(state))
+	http.HandleFunc("/logout/", logoutHandler)
 
 	// post-login handlers:
 	http.HandleFunc("/linkNokia", sessionHandler(state, linkNokia))
 	http.HandleFunc("/nokiaCallback", sessionHandler(state, nokiaCallback))
 
-	//http.HandleFunc(authCallbackPath, authCallback(&state, &authCallbackUrl))
+	//http.HandleFunc(authCallbackPath, authCallback(&State, &authCallbackUrl))
 
 	// start the http service:
 	s := &http.Server{

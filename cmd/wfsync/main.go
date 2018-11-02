@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/bdelliott/withings-fatsecret-sync/wfsync"
 	"log"
-	"os"
 )
 
 //start a little webapp for syncing Withings (Nokia) body scale measurements
@@ -23,13 +22,12 @@ func main() {
 		log.Fatal("Missing required flag -nokia-auth-callback-url")
 	}
 
-	store, err := wfsync.StoreGet()
-	if err != nil {
-		log.Fatal(err);
-		os.Exit(1);
-	}
+	db := wfsync.DBInit()
+	defer db.Close()
 
-	state := wfsync.StateInit(store, nokiaAuthCallbackUrl);
+	state := wfsync.StateInit(db, nokiaAuthCallbackUrl)
+
+	go wfsync.SyncWorker(state)
 
 	wfsync.WebServe(state)
 }

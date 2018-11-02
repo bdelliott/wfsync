@@ -10,19 +10,15 @@ import (
 const (
 	homeTemplate  = "assets/templates/home.html"
 	loginTemplate = "assets/templates/login.html"
+	logoutTemplate = "assets/templates/logout.html"
 
 	// cookie to identify user:
 	userIdCookie = "userid"
 
-	// session keys:
-	sessionUserIdKey         = "userId"
-	sessionUsernameKey       = "userName"
-
-	sessionNokiaAccessToken = "nokiaAccessToken"
 )
 
 // Render the home page for a logged in user
-func home(rw http.ResponseWriter, req *http.Request, state *state, session *session) {
+func home(rw http.ResponseWriter, req *http.Request, state *State) {
 
 	t, err := template.ParseFiles(homeTemplate)
 	if err != nil {
@@ -35,15 +31,17 @@ func home(rw http.ResponseWriter, req *http.Request, state *state, session *sess
 		FatSecretState string
 	}
 
-	userName := session.Get(sessionUsernameKey, "").(string)
-	nokiaState := session.Has(sessionNokiaAccessToken)
-	//fatSecretState := session.Get(sessionFatSecretStateKey, false).(bool)
-	fatSecretState := false // TODO
+	user, exists := getUser(rw, req, state)
+	if !exists {
+		return; // redirect was issued.
+	}
+
+	_, nokiaTokenExists := DBNokiaTokenGet(state.db, user)
 
 	data := HomeData {
-		UserName: userName,
-		NokiaState: linkStr(nokiaState),
-		FatSecretState: linkStr(fatSecretState),
+		UserName: user.userName,
+		NokiaState: linkStr(nokiaTokenExists),
+		FatSecretState: linkStr(false),
 	}
 	err = t.Execute(rw, data)
 	if err != nil {
@@ -51,8 +49,8 @@ func home(rw http.ResponseWriter, req *http.Request, state *state, session *sess
 	}
 }
 
-func linkStr(stateVal bool) string {
-	if stateVal {
+func linkStr(haveToken bool) string {
+	if haveToken {
 		return "Linked"
 	} else {
 		return "Not Linked"
@@ -61,7 +59,7 @@ func linkStr(stateVal bool) string {
 
 
 // Handle user login
-func loginHandler(state *state) func(rw http.ResponseWriter, req *http.Request) {
+func loginHandler(state *State) func(rw http.ResponseWriter, req *http.Request) {
 
 	return func(rw http.ResponseWriter, req *http.Request) {
 
@@ -82,16 +80,7 @@ func loginHandler(state *state) func(rw http.ResponseWriter, req *http.Request) 
 			userId := req.Form.Get("userid")
 			userName := req.Form.Get("username")
 
-			log.Print("Saving a session for user id ", userId)
-
-			session, err := state.store.GetSession(req, userId)
-			if err != nil {
-				log.Fatal("Failed to get session", err)
-			}
-
-			session.Put(sessionUserIdKey, userId)
-			session.Put(sessionUsernameKey, userName)
-			session.Save(rw, req)
+			DBUserSave(state.db, userId, userName)
 
 			cookie := &http.Cookie{
 				Name:   userIdCookie,
@@ -106,16 +95,46 @@ func loginHandler(state *state) func(rw http.ResponseWriter, req *http.Request) 
 	}
 }
 
-
 // Redirect user to the oauth login page for Nokia HealthMate
-func linkNokia(rw http.ResponseWriter, req *http.Request, state *state, session *session) {
+func linkNokia(rw http.ResponseWriter, req *http.Request, state *State) {
 
 	nokiaAuthorizationUrl := NokiaGetAuthorizationUrl(state.nokia)
 	http.Redirect(rw, req, nokiaAuthorizationUrl, http.StatusSeeOther)
 }
 
+// Logout the user
+func logoutHandler(rw http.ResponseWriter, req *http.Request) {
+
+	// delete cookie:
+	cookie, err := req.Cookie(userIdCookie)
+	if err != nil {
+		log.Print("Failed to retrieve user id cookie: ", err)
+	} else {
+		log.Print("Deleting cookie")
+		userId := cookie.Value
+
+		cookie = &http.Cookie{
+			Name:   userIdCookie,
+			Value:  userId,
+			Path:   "/",
+			MaxAge: -1, // means delete now
+		}
+		http.SetCookie(rw, cookie)
+	}
+
+	t, err := template.ParseFiles(logoutTemplate)
+	if err != nil {
+		log.Fatalf("Failed to parse template %s %s", logoutTemplate, err)
+	}
+
+	err = t.Execute(rw, nil)
+	if err != nil {
+		log.Fatalf("Failed to execute template %s %s", logoutTemplate, err)
+	}
+}
+
 // To be called after user authorizes the app with the Nokia HealthMate API.
-func nokiaCallback(rw http.ResponseWriter, req *http.Request, state *state, session *session) {
+func nokiaCallback(rw http.ResponseWriter, req *http.Request, state *State) {
 	err := req.ParseForm()
 	if err != nil {
 		msg := fmt.Sprint("Error parsing form values", err)
@@ -133,20 +152,23 @@ func nokiaCallback(rw http.ResponseWriter, req *http.Request, state *state, sess
 	}
 
 	log.Print("Saving token and redirecting")
-	session.Put(sessionNokiaAccessToken, token)
-	session.Save(rw, req)
+
+	user, exists := getUser(rw, req, state)
+	if !exists {
+		return; // redirect was issued.
+	}
+
+	DBNokiaTokenSave(state.db, user, token)
 
 	http.Redirect(rw, req, "/", http.StatusFound)
 
 }
 
-
 // Wrap session related functionality common to other handlers.
-func sessionHandler(state *state,
+func sessionHandler(state *State,
 					handler func (http.ResponseWriter,
 						          *http.Request,
-						          *state,
-						          *session)) func(rw http.ResponseWriter, req *http.Request) {
+						          *State)) func(rw http.ResponseWriter, req *http.Request) {
 
 	return func(rw http.ResponseWriter, req *http.Request) {
 
@@ -164,14 +186,7 @@ func sessionHandler(state *state,
 
 			log.Printf("%s %s", handlerName, userId)
 
-			session, err := state.store.GetSession(req, userId)
-			if err != nil {
-				msg := fmt.Sprint("Error retrieving session: ", err)
-				log.Print(handlerName, msg)
-				http.Error(rw, msg, http.StatusBadRequest)
-			}
-
-			handler(rw, req, state, session)
+			handler(rw, req, state)
 		}
 	}
 }
