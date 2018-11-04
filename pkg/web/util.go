@@ -1,4 +1,4 @@
-package wfsync
+package web
 
 import (
 	"log"
@@ -6,28 +6,29 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/bdelliott/wfsync/pkg/db"
+	"github.com/bdelliott/wfsync/pkg/state"
 )
 
-
+// FunctionGetShortName returns the the local name of a function (without package path)
 func FunctionGetShortName(fn interface{}) string {
-	// reflect out the package.function name of a function for logging:
 	handlerName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 	tok := strings.Split(handlerName, "/")
 	shortHandlerName := tok[len(tok)-1]
 	return shortHandlerName
 }
 
-
 // Get user information, or force a logout in the event of failure
-func getUser(rw http.ResponseWriter, req *http.Request, state *State) (User, bool) {
+func getUser(rw http.ResponseWriter, req *http.Request, s *state.State) (db.User, bool) {
 
-	cookie, err := req.Cookie(userIdCookie)
+	cookie, err := req.Cookie(userIDCookie)
 	if err != nil {
 		log.Fatal("Error getting user cookie: ", err)
 	}
-	userId := cookie.Value
+	userID := cookie.Value
 
-	user, exists := DBUserGet(state.db, userId)
+	user, exists := db.UserGet(s.DB, userID)
 
 	if !exists {
 		// user doesn't exist in the DB.  force a logout.
@@ -36,5 +37,3 @@ func getUser(rw http.ResponseWriter, req *http.Request, state *State) (User, boo
 
 	return user, exists
 }
-
-

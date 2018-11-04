@@ -1,39 +1,39 @@
-package wfsync
+package state
 
 import (
 	"database/sql"
 	"os"
+
+	"github.com/bdelliott/wfsync/pkg/withings"
 )
 
+// State is the top-level state object
 type State struct {
-	db *sql.DB
-	nokia *nokiaState
-	//nokiaRequestTokenMap map[string]*oauth.RequestToken // Nokia req token string => RequestToken
-	//nokiaAccessTokenMap map[string]*oauth.AccessToken // Nokia uid => AccessToken
+	DB       *sql.DB
+	Withings *withings.State
 }
 
-// initialize the main auth State data struct
-func StateInit(db *sql.DB, nokiaAuthCallbackUrl string) *State {
+// Init initialize the main auth State data struct
+func Init(db *sql.DB, withingsAuthCallbackURL string) *State {
 
-	nokiaApiKey := os.Getenv("NOKIA_API_KEY")
-	nokiaApiSecret := os.Getenv("NOKIA_API_SECRET")
+	withingsAPIKey := os.Getenv("WITHINGS_API_KEY")
+	withingsAPISecret := os.Getenv("WITHINGS_API_SECRET")
 
-	nokia := NokiaStateInit(
-		nokiaApiKey,
-		nokiaApiSecret,
-		nokiaAuthCallbackUrl,
+	withingsState := withings.StateInit(
+		withingsAPIKey,
+		withingsAPISecret,
+		withingsAuthCallbackURL,
 	)
 
 	state := State{
-		db: db,
-		nokia: nokia,
-	   //nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
-	   //nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),
+		DB:       db,
+		Withings: withingsState,
+		//nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
+		//nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),
 	}
 
 	return &state
 }
-
 
 // User has authorized, now do something useful
 /*

@@ -1,16 +1,17 @@
-package wfsync
+package web
 
 import (
-	"github.com/gorilla/context"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/bdelliott/wfsync/pkg/state"
+	"github.com/gorilla/context"
 )
 
-
-// start a little webapp for syncing Withings (Nokia) body scale measurements to
+// Serve starts a little webapp for syncing Withings body scale measurements to
 // a FatSecret profile
-func WebServe(state *State) {
+func Serve(s *state.State) {
 
 	// map url paths to handler functions:
 
@@ -19,26 +20,26 @@ func WebServe(state *State) {
 	http.Handle("/css/", http.FileServer(http.Dir("./assets")))
 
 	// home page:
-	http.HandleFunc("/", sessionHandler(state, home))
+	http.HandleFunc("/", sessionHandler(s, home))
 
 	// login page
-	http.HandleFunc("/login/", loginHandler(state))
+	http.HandleFunc("/login/", loginHandler(s))
 	http.HandleFunc("/logout/", logoutHandler)
 
 	// post-login handlers:
-	http.HandleFunc("/linkNokia", sessionHandler(state, linkNokia))
-	http.HandleFunc("/nokiaCallback", sessionHandler(state, nokiaCallback))
+	http.HandleFunc("/linkWithings", sessionHandler(s, linkWithings))
+	http.HandleFunc("/withingsCallback", sessionHandler(s, withingsCallback))
 
 	//http.HandleFunc(authCallbackPath, authCallback(&State, &authCallbackUrl))
 
 	// start the http service:
-	s := &http.Server{
+	srv := &http.Server{
 		Addr:           ":8080",
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
-		Handler: context.ClearHandler(http.DefaultServeMux),
+		Handler:        context.ClearHandler(http.DefaultServeMux),
 	}
 
-	log.Fatal(s.ListenAndServe())
+	log.Fatal(srv.ListenAndServe())
 }

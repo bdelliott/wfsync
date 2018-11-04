@@ -2,8 +2,12 @@ package main
 
 import (
 	"flag"
-	"github.com/bdelliott/withings-fatsecret-sync/wfsync"
 	"log"
+
+	"github.com/bdelliott/wfsync/pkg/db"
+	"github.com/bdelliott/wfsync/pkg/state"
+	"github.com/bdelliott/wfsync/pkg/web"
+	"github.com/bdelliott/wfsync/pkg/worker"
 )
 
 //start a little webapp for syncing Withings (Nokia) body scale measurements
@@ -12,22 +16,22 @@ func main() {
 
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime | log.Lshortfile)
 
-	var nokiaAuthCallbackUrl string
+	var withingsAuthCallbackURL string
 
-	flag.StringVar(&nokiaAuthCallbackUrl, "nokia-auth-callback-url", "",
-		"Nokia Callback URL after user authorizes the app")
+	flag.StringVar(&withingsAuthCallbackURL, "withings-auth-callback-url", "",
+		"Withings Callback URL after user authorizes the app")
 	flag.Parse()
 
-	if nokiaAuthCallbackUrl == "" {
-		log.Fatal("Missing required flag -nokia-auth-callback-url")
+	if withingsAuthCallbackURL == "" {
+		log.Fatal("Missing required flag -withings-auth-callback-url")
 	}
 
-	db := wfsync.DBInit()
-	defer db.Close()
+	sqlDB := db.Init()
+	defer sqlDB.Close()
 
-	state := wfsync.StateInit(db, nokiaAuthCallbackUrl)
+	s := state.Init(sqlDB, withingsAuthCallbackURL)
 
-	go wfsync.SyncWorker(state)
+	go worker.SyncWorker(s)
 
-	wfsync.WebServe(state)
+	web.Serve(s)
 }
