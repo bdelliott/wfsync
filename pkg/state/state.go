@@ -4,17 +4,19 @@ import (
 	"database/sql"
 	"os"
 
+	"github.com/bdelliott/wfsync/pkg/fatsecret"
 	"github.com/bdelliott/wfsync/pkg/withings"
 )
 
 // State is the top-level state object
 type State struct {
-	DB       *sql.DB
-	Withings *withings.State
+	DB        *sql.DB
+	Withings  *withings.State
+	FatSecret *fatsecret.State
 }
 
 // Init initialize the main auth State data struct
-func Init(db *sql.DB, withingsAuthCallbackURL string) *State {
+func Init(db *sql.DB, withingsAuthCallbackURL string, fatsecretAuthCallbackURL string) *State {
 
 	withingsAPIKey := os.Getenv("WITHINGS_API_KEY")
 	withingsAPISecret := os.Getenv("WITHINGS_API_SECRET")
@@ -25,11 +27,17 @@ func Init(db *sql.DB, withingsAuthCallbackURL string) *State {
 		withingsAuthCallbackURL,
 	)
 
+	fatsecretAPIKey := os.Getenv("FATSECRET_API_KEY")
+
+	fatsecretState := fatsecret.StateInit(
+		fatsecretAPIKey,
+		fatsecretAuthCallbackURL,
+	)
+
 	state := State{
-		DB:       db,
-		Withings: withingsState,
-		//nokiaRequestTokenMap: make(map[string]*oauth.RequestToken),
-		//nokiaAccessTokenMap: make(map[string]*oauth.AccessToken),
+		DB:        db,
+		Withings:  withingsState,
+		FatSecret: fatsecretState,
 	}
 
 	return &state

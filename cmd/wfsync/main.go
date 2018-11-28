@@ -17,19 +17,28 @@ func main() {
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime | log.Lshortfile)
 
 	var withingsAuthCallbackURL string
+	var fatsecretAuthCallbackURL string
 
 	flag.StringVar(&withingsAuthCallbackURL, "withings-auth-callback-url", "",
 		"Withings Callback URL after user authorizes the app")
+
+	flag.StringVar(&fatsecretAuthCallbackURL, "fatsecret-auth-callback-url", "",
+		"FatSecret Callback URL after user authorizes the app")
+
 	flag.Parse()
 
 	if withingsAuthCallbackURL == "" {
 		log.Fatal("Missing required flag -withings-auth-callback-url")
 	}
 
+	if fatsecretAuthCallbackURL == "" {
+		log.Fatal("Missing required flag -fatsecret-auth-callback-url")
+	}
+
 	sqlDB := db.Init()
 	defer sqlDB.Close()
 
-	s := state.Init(sqlDB, withingsAuthCallbackURL)
+	s := state.Init(sqlDB, withingsAuthCallbackURL, fatsecretAuthCallbackURL)
 
 	go worker.SyncWorker(s)
 
