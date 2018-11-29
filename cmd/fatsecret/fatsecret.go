@@ -1,110 +1,65 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"net/url"
-	"os"
-	"strconv"
-	"time"
-
-	"github.com/nu7hatch/gouuid"
+	"github.com/bdelliott/wfsync/pkg/fatsecret"
+	"github.com/bdelliott/wfsync/pkg/oauth1"
 )
 
 // standalone client for FatSecret development/testing
 func main() {
 
-	consumerKey := os.Getenv("FATSECRET_API_CONSUMER_KEY")
-	if consumerKey == "" {
-		log.Fatal("Missing consumer key")
+	provider := oauth1.Provider{
+		RequestTokenURL: "http://www.fatsecret.com/oauth/request_token",
+		CallbackURL: "oob",
+		AuthorizeURL: "http://www.fatsecret.com/oauth/authorize",
+		AccessTokenURL: "http://www.fatsecret.com/oauth/access_token",
+		RequestURL: "http://platform.fatsecret.com/rest/server.api",
 	}
+	credentials := oauth1.CredentialsFromEnv("fatsecret")
 
-	consumerSecret := os.Getenv("FATSECRET_API_CONSUMER_SECRET")
-	if consumerSecret == "" {
-		log.Fatal("Missing consumer secret")
+	oauthClient := oauth1.Client{
+		Credentials: credentials,
+		Provider: provider,
 	}
 
 	// 3-legged oauth to access a fatsecret profile: https://platform.fatsecret.com/api/Default.aspx?screen=rapitlsa
-
 	// <HTTP Method>&<Request URL>&<Normalized Parameters>
 
-	// calculate signature base string
-	// <HTTP Method>&<Request URL>&<Normalized Parameters>
+	// 1. Get a request token:
+	requestToken, requestTokenSecret := oauthClient.GetRequestToken()
+	fmt.Println(requestTokenSecret)
 
-	method := "GET"
-	requestTokenURL := "http://www.fatsecret.com/oauth/request_token"
-
-	escapedRequestURL := url.QueryEscape(requestTokenURL)
-	fmt.Println(escapedRequestURL)
-
-	fmt.Println(escapedRequestURL)
-
-	now := time.Now()
-	secs := now.Unix()
-	timestamp := strconv.FormatInt(secs, 10)
-
-	params := url.Values{}
-	params.Add("oauth_consumer_key", consumerKey)
-	params.Add("oauth_signature_method", "HMAC-SHA1")
-	params.Add("oauth_timestamp", timestamp)
-	params.Add("oauth_nonce", nonce())
-	params.Add("oauth_version", "1.0")
-	params.Add("oauth_callback", "oob")
-
-	//fmt.Println(params)
-	//fmt.Println(params.Encode())
-
-	encodedParams := params.Encode()
-	escapedParams := url.QueryEscape(encodedParams)
-
-	signatureBaseString := fmt.Sprintf("%s&%s&%s", method, escapedRequestURL, escapedParams)
-	fmt.Println(signatureBaseString)
-
-	// signature
-	keyStr := consumerSecret + "&"
-	key := []byte(keyStr)
-	hash := hmac.New(sha1.New, key)
-	hash.Write([]byte(signatureBaseString))
-	sig := hash.Sum(nil)
+	// 2. authorize the request token:
+	authorizeUrl := oauthClient.GetAuthorizeURL(requestToken)
+	fmt.Println("Now visit the following URL in a browser to get a verifier code: ", authorizeUrl)
 
 
-	signature := base64.StdEncoding.EncodeToString(sig)
-	fmt.Println(signature)
-
-	params.Add("oauth_signature", signature)
-
-	req, err := http.NewRequest("GET", requestTokenURL, nil)
+	fmt.Print("Enter verifier code from browser: ")
+	var verifier int
+	_, err := fmt.Scanln(&verifier)
 	if err != nil {
 		panic(err)
 	}
 
-	encodedParams = params.Encode()
-	req.URL.RawQuery = encodedParams
+	fmt.Println("Verifier code is: ", verifier)
 
-	client := http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(body))
+	// 3. Get an access token:
+	oauthToken, oauthTokenSecret := oauthClient.GetAccessToken(requestToken, requestTokenSecret, verifier)
 
-}
+	oauthClient.Token = oauthToken
+	oauthClient.Secret = oauthTokenSecret
 
-// generate a uuid for the oauth nonce value
-func nonce() string {
-	u, err := uuid.NewV4()
-	if err != nil {
-		panic(err)
+
+	fmt.Println("Authorization complete, now testing access to the API itself....")
+
+	fmt.Println("user token: ", oauthClient.Token)
+
+	// okay, now issue a test request to the API (finally)
+	fsClient := fatsecret.Client{
+		OAuthClient: oauthClient,
 	}
-	return u.String()
+
+	resp := fsClient.WeightsGetMonth()
+	fmt.Println(resp)
 }
