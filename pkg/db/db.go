@@ -32,7 +32,8 @@ type WithingsToken struct {
 // Init a SQLite db
 func Init() *sql.DB {
 
-	dbPath := filepath.Join(os.Getenv("HOME"), ".config", "wfsync", "wfsync.db")
+	dbDir := ensureDBDir()
+	dbPath := filepath.Join(dbDir, "wfsync.db")
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal("Failed to open DB: ", err)
@@ -74,7 +75,29 @@ func Init() *sql.DB {
 		log.Fatal(err)
 	}
 
+	// create fatsecret token table:
+	_, err = db.Exec(
+		// token and secret are oauth1 string values
+		`CREATE TABLE IF NOT EXISTS fatsecretTokens
+					(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+					 userId TEXT NOT NULL,
+					 token TEXT NOT NULL,
+					 secret TEXT NOT NULL, 
+					 FOREIGN KEY(userId) REFERENCES users(userId))`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 	return db
+}
+
+func ensureDBDir() string {
+	dbDir := filepath.Join(os.Getenv("HOME"), ".config", "wfsync")
+	err := os.MkdirAll(dbDir, 0700)
+	if err != nil {
+		panic(err)
+	}
+	return dbDir
 }
 
 // UserGet looks up a user by user id
@@ -248,3 +271,56 @@ func WithingsTokensGetAll(db *sql.DB) *[]WithingsToken {
 
 	return &tokens
 }
+
+// Retrieves fatsecret user creds, if previously saved
+func FatSecretTokenGet(db *sql.DB, user User) (token string, secret string, exists bool) {
+
+	rows, err := db.Query("SELECT token, secret FROM fatsecretTokens where userId=?", user.UserID)
+
+	if err != nil {
+		log.Fatal("An error occurred fetching a token: ", err)
+	}
+
+	defer rows.Close()
+
+	exists = rows.Next()
+
+	if exists {
+
+		err = rows.Scan(&token, &secret)
+
+		if err != nil {
+			log.Fatal("Failed to scan row: ", err)
+		}
+	}
+
+	return token, secret, exists
+}
+
+
+// Save fatsecret API tokens return from oauth1 process
+func FatSecretTokenSave(db *sql.DB, user User, token string, secret string) {
+
+	_, _, exists := FatSecretTokenGet(db, user)
+	if exists {
+		// replace the existing token
+		log.Print("Updating fatsecret tokens for user: ", user.UserID)
+		_, err := db.Exec("UPDATE fatsecretTokens SET token=?, secret=? WHERE userId=?", token, secret,
+						  user.UserID)
+
+		if err != nil {
+			log.Fatal("Failed to update token value: ", err)
+		}
+	} else {
+		// insert a new token record
+		log.Print("Saving new fatsecret token for user: ", user.UserID)
+		_, err := db.Exec("INSERT INTO fatsecretTokens (userId, token, secret) VALUES (?, ?, ?)", user.UserID,
+								token, secret)
+
+		if err != nil {
+			log.Fatal("Failed to insert token: ", err)
+		}
+	}
+
+}
+

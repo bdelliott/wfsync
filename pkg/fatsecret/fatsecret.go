@@ -5,9 +5,29 @@ import (
 	"net/url"
 )
 
+
 // FatSecret API client
 type Client struct {
 	OAuthClient oauth1.Client
+}
+
+func NewClient() Client {
+	provider := oauth1.Provider{
+		RequestTokenURL: "http://www.fatsecret.com/oauth/request_token",
+		AuthorizeURL: "http://www.fatsecret.com/oauth/authorize",
+		AccessTokenURL: "http://www.fatsecret.com/oauth/access_token",
+		RequestURL: "http://platform.fatsecret.com/rest/server.api",
+	}
+	credentials := oauth1.CredentialsFromEnv("fatsecret")
+
+	oauthClient := oauth1.Client{
+		Credentials: credentials,
+		Provider: provider,
+	}
+
+	return Client{
+		OAuthClient: oauthClient,
+	}
 }
 
 

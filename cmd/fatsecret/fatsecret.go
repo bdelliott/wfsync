@@ -27,7 +27,7 @@ func main() {
 	// <HTTP Method>&<Request URL>&<Normalized Parameters>
 
 	// 1. Get a request token:
-	requestToken, requestTokenSecret := oauthClient.GetRequestToken()
+	requestToken, requestTokenSecret := oauthClient.GetRequestToken("oob")
 	fmt.Println(requestTokenSecret)
 
 	// 2. authorize the request token:

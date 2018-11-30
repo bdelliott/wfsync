@@ -31,8 +31,6 @@ type Credentials struct {
 
 type Provider struct {
 	RequestTokenURL	string	// URL to get the initial request token
-	CallbackURL	    string  // URL where the server should redirect with the temporary token.
-
 	AuthorizeURL	string  // URL to authorize the returned temporary token
 	AccessTokenURL	string  // URL to get the final access credentials to make requests on behalf of the user
 
@@ -63,10 +61,10 @@ func CredentialsFromEnv(providerName string) Credentials {
 }
 
 // get the initial request token (step 1 of authorization)
-func (c Client) GetRequestToken() (requestToken string, requestTokenSecret string) {
+func (c Client) GetRequestToken(callbackURL string) (requestToken string, requestTokenSecret string) {
 
 	params := url.Values{}
-	params.Add("oauth_callback", "oob")
+	params.Add("oauth_callback", callbackURL)
 
 	resp := sendSignedRequest(c.Provider.RequestTokenURL, c.Credentials, "", "", params)
 

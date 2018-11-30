@@ -29,6 +29,8 @@ func Serve(s *state.State) {
 	// post-login handlers:
 	http.HandleFunc("/linkWithings", sessionHandler(s, linkWithings))
 	http.HandleFunc("/withingsCallback", sessionHandler(s, withingsCallback))
+	http.HandleFunc("/linkFatSecret", sessionHandler(s, linkFatSecret))
+	http.HandleFunc("/fatsecretCallback", sessionHandler(s, fatsecretCallback))
 
 	//http.HandleFunc(authCallbackPath, authCallback(&State, &authCallbackUrl))
 

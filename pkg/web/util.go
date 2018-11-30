@@ -22,13 +22,12 @@ func FunctionGetShortName(fn interface{}) string {
 // Get user information, or force a logout in the event of failure
 func getUser(rw http.ResponseWriter, req *http.Request, s *state.State) (db.User, bool) {
 
-	cookie, err := req.Cookie(userIDCookie)
+	userId, err := getUserId(req)
 	if err != nil {
 		log.Fatal("Error getting user cookie: ", err)
 	}
-	userID := cookie.Value
 
-	user, exists := db.UserGet(s.DB, userID)
+	user, exists := db.UserGet(s.DB, userId)
 
 	if !exists {
 		// user doesn't exist in the DB.  force a logout.
